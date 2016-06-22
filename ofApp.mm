@@ -1,11 +1,30 @@
 #include "ofApp.h"
 
+struct FPS {
+    float elapsedTime;
+    unsigned long frameCount;
+    FPS () : elapsedTime(0), frameCount(0) {}
+    void count() { ++frameCount; }
+    float fps() {
+        float f = frameCount*1000. / (ofGetElapsedTimeMillis() - elapsedTime);
+        if (frameCount>300) {
+            elapsedTime = ofGetElapsedTimeMillis();
+            frameCount = 0;
+        }
+        return f;
+    }
+} fps;
+
 //--------------------------------------------------------------
-void ofApp::setup() {
-    ofSetVerticalSync(true);
-    cam.setup(320,240);
+void ofApp::setup(){
     
-    calibration.load("mbp-2011-isight.yml");
+    arMatch.setup();
+    
+    ofSetVerticalSync(true);
+    cam.setup(320,240); // (320x240) -> 360x480
+    // (640,480) -> (480,640)
+    
+    calibration.load("calibInfo.yml");
     patternSize = calibration.getPatternSize();
     objectPoints = ofxCv::Calibration::createObjectPoints(patternSize, 1., ofxCv::CHESSBOARD);
     found = false;
@@ -13,70 +32,54 @@ void ofApp::setup() {
     light.enable();
     light.setPosition(200, 0, 0);
     ofDisableLighting();
-
+    
+    // with retina, screensize = 640x1136
+    printf("setup(): ScreenSize=%dx%d\n", ofGetScreenWidth(), ofGetScreenHeight());
+    printf("setup(): CameraSize=%.0fx%.0f\n", cam.getWidth(), cam.getHeight());
 }
 
-std::vector<cv::Mat> vecrgb;
-bool flag_vecrgb =false;
 //--------------------------------------------------------------
-void ofApp::update() {
+bool flag_vecrgb =false;
+
+void ofApp::update(){
     cam.update();
     if(cam.isFrameNew()) {
-        cv::split (ofxCv::toCv(cam), vecrgb);
         flag_vecrgb = true;
-        //found = calibration.findBoard(ofxCv::toCv(cam), imagePoints);
-        found = calibration.findBoard(vecrgb[1], imagePoints);
-        if(found) {
-            cv::Mat cameraMatrix = calibration.getDistortedIntrinsics().getCameraMatrix();
-            cv::Mat rvec, tvec;
-            solvePnP(cv::Mat(objectPoints), cv::Mat(imagePoints), cameraMatrix, calibration.getDistCoeffs(), rvec, tvec);
-            modelMatrix = ofxCv::makeMatrix(rvec, tvec);
-        }
-
-        char str[512];
-        sprintf (str, "%.1fx%.1f\n", cam.getWidth(), cam.getHeight());
-        ofDrawBitmapString(str, 30, 200);
+        static cv::Mat rview;
+        cv::cvtColor(ofxCv::toCv(cam), rview, CV_BGR2GRAY);
+        
+        found = arMatch.detect(rview);
     }
+
 }
 
+static float yp = 500;
 //--------------------------------------------------------------
-
 void ofApp::draw(){
+    fps.count();
     ofSetColor(255);
-    cam.draw(0, 0);
-    if(found) {
-        calibration.getDistortedIntrinsics().loadProjectionMatrix();
-        ofxCv::applyMatrix(modelMatrix);
+    cam.draw(0,0);
+    arMatch.draw();
+    
+    if (found) {
+        ofSetColor (255,0,0);
+        ofSetLineWidth(3);
+        for (int i=0; i<=4; i++)
+            ofDrawLine(arMatch.ImageCorners[i%4].x, arMatch.ImageCorners[i%4].y,
+                       arMatch.ImageCorners[(i+1)%4].x, arMatch.ImageCorners[(i+1)%4].y
+                       );
+//        printf("arMatch.ImageCorners[0],[1]= (%.1f, %.1f), (%.1f, %.1f)\n",
+//               arMatch.ImageCorners[0].x, arMatch.ImageCorners[0].y,
+//               arMatch.ImageCorners[1].x, arMatch.ImageCorners[10].y);
         
-        ofMesh mesh;
-        mesh.setMode(OF_PRIMITIVE_POINTS);
-        for(int i = 0; i < objectPoints.size(); i++) {
-            mesh.addVertex(ofxCv::toOf(objectPoints[i]));
-        }
-        glPointSize(3);
-        ofSetColor(50,250,250);
-        mesh.drawVertices();
-        
-        ofEnableLighting();
-        ofSetColor(255);
-        ofEnableDepthTest();
-        ofDrawAxis(5);
-        ofPushMatrix();
-        // ---------
-        ofTranslate(.5, .5, -.5);
-        ofDrawBox (0,0, 0, 1);
-//        for(int i = 0; i < patternSize.width / 2; i++) {
-//            for(int j = 0; j < patternSize.height / 2; j++) {
-//                for(int k = 0; k < 3; k++) {
-//                    ofDrawBox(2 * i, 2 * j, -2 * k, 1);
-//                }
-//            }
-//        }
-        // ---------
-        ofPopMatrix();
-        ofDisableDepthTest();
-        ofDisableLighting();
     }
+    
+    string str =  string("Movie Time: 7:30pm\nMain Theater.\n") + "\nFPS: " + to_string (fps.fps()) ;
+    ofSetColor (255,0,0);
+    ofDrawBitmapString(str, 20, yp);
+    
+//    if (yp >= ofGetScreenHeight()) yp=10;
+//    printf("ofGetScreenHeight=%d ofGetHeight=%d\n", ofGetScreenHeight(), ofGetHeight());
 }
 
 //--------------------------------------------------------------
