@@ -34,12 +34,12 @@ public:
     vector<cv::Point2f> imagePoints;
     cv::Size patternSize;
     ofMatrix4x4 modelMatrix;
-    bool found;
     ofLight light;
  
     //
     
-    ARMatch arMatch;
+    bool found1, found2;
+    ARMatch arMatch1, arMatch2;
     
     //
 //    ofxiOSVideoWriter videoWriter;

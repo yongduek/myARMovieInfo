@@ -14,7 +14,7 @@
 struct ARMatch {
     const bool dbgflag=false;
     const float KNN_MATCH_RATIO = 0.7;
-    const string MarkerImageName = "query240x344.png";
+    string MarkerImageName, movieName;
     
     cv::Mat QueryMat;
     ofImage QueryImage;
@@ -27,8 +27,13 @@ struct ARMatch {
     
     vector<cv::Point2f> ImageCorners;
     
-    void setup() {
-        QueryImage.load(MarkerImageName);
+    void setup(string imagefilename, string _movieName) {
+        movieName = _movieName;
+        QueryImage.load(MarkerImageName=imagefilename);
+        
+        if (QueryImage.isAllocated()) {
+            cerr << "Model Image loaded: " << MarkerImageName << endl;
+        }
         QueryMat = ofxCv::toCv(QueryImage);
         
         Feature = cv::AKAZE::create();
@@ -36,7 +41,7 @@ struct ARMatch {
         //        Feature->detect(QueryMat, KeyPtQuery);
         //        Feature->compute(QueryMat, KeyPtQuery, DescriptQuery);
         
-        fprintf (stderr, "ARMatch::setup(): query feature saved %d\n", KeyPtQuery.size());
+        fprintf (stderr, "ARMatch::setup(): query feature saved %lu\n", KeyPtQuery.size());
     }
     
     void KeyPoint2Point2f(vector<cv::KeyPoint> &InputKeypoint, vector<cv::Point2f> &OutputKeypoint) {
@@ -127,11 +132,26 @@ struct ARMatch {
         }
         
         if (detectFlag) {
+            
+            ofSetColor (255,255,0);
+            ofSetLineWidth(3);
+            for (int i=0; i<=4; i++)
+                ofDrawLine(ImageCorners[i%4].x, ImageCorners[i%4].y,
+                           ImageCorners[(i+1)%4].x, ImageCorners[(i+1)%4].y
+                           );
+
             ofSetColor (255,0,0);
             for (int i=0; i<inliersVec.size(); i++) { //PointTrain.size(); i++) {
                 if (inliersVec[i] > 0)
                     ofDrawCircle (PointTrain[i].x, PointTrain[i].y, 2 );
             }
+            
+            string str = movieName + "\n"
+                       + string("Movie Time: 7:30pm\nMain Theater.\n");
+            ofSetColor (255,0,0);
+            const int yp = 500;
+            ofDrawBitmapString(str, 20, yp);
+
         }
     } // draw()
 };

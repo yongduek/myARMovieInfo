@@ -15,19 +15,23 @@ struct FPS {
     }
 } fps;
 
+const string MarkerImageName1 = "query240x344.png";
+const string MarkerImageName2 = "abird200x296.png";
+
 //--------------------------------------------------------------
 void ofApp::setup(){
     
-    arMatch.setup();
+    arMatch1.setup(MarkerImageName1, string("Hymalaya"));
+    arMatch2.setup(MarkerImageName2, string("Angry Birds"));
     
     ofSetVerticalSync(true);
     cam.setup(320,240); // (320x240) -> 360x480
     // (640,480) -> (480,640)
     
-    calibration.load("calibInfo.yml");
-    patternSize = calibration.getPatternSize();
-    objectPoints = ofxCv::Calibration::createObjectPoints(patternSize, 1., ofxCv::CHESSBOARD);
-    found = false;
+//    calibration.load("calibInfo.yml");
+//    patternSize = calibration.getPatternSize();
+//    objectPoints = ofxCv::Calibration::createObjectPoints(patternSize, 1., ofxCv::CHESSBOARD);
+    found1 = found2 = false;
     
     light.enable();
     light.setPosition(200, 0, 0);
@@ -48,34 +52,25 @@ void ofApp::update(){
         static cv::Mat rview;
         cv::cvtColor(ofxCv::toCv(cam), rview, CV_BGR2GRAY);
         
-        found = arMatch.detect(rview);
+        found1 = arMatch1.detect(rview);
+        found2 = arMatch2.detect(rview);
     }
 
 }
 
-static float yp = 500;
 //--------------------------------------------------------------
 void ofApp::draw(){
     fps.count();
     ofSetColor(255);
     cam.draw(0,0);
-    arMatch.draw();
+    if (found1)
+        arMatch1.draw();
+    if (found2)
+        arMatch2.draw();        
     
-    if (found) {
-        ofSetColor (255,0,0);
-        ofSetLineWidth(3);
-        for (int i=0; i<=4; i++)
-            ofDrawLine(arMatch.ImageCorners[i%4].x, arMatch.ImageCorners[i%4].y,
-                       arMatch.ImageCorners[(i+1)%4].x, arMatch.ImageCorners[(i+1)%4].y
-                       );
-//        printf("arMatch.ImageCorners[0],[1]= (%.1f, %.1f), (%.1f, %.1f)\n",
-//               arMatch.ImageCorners[0].x, arMatch.ImageCorners[0].y,
-//               arMatch.ImageCorners[1].x, arMatch.ImageCorners[10].y);
-        
-    }
-    
-    string str =  string("Movie Time: 7:30pm\nMain Theater.\n") + "\nFPS: " + to_string (fps.fps()) ;
-    ofSetColor (255,0,0);
+    string str =  "FPS: " + to_string (fps.fps()) ;
+    ofSetColor (255,0,255);
+    static float yp = 550;
     ofDrawBitmapString(str, 20, yp);
     
 //    if (yp >= ofGetScreenHeight()) yp=10;
