@@ -21,4 +21,6 @@ Download one of the following at opencv.org
   - opencv2.framework version 2.3.1
   - put it in the folder: myARMovieInfo
 
-comments & questions: yndk@sogang.ac.kr
+When the app is compiled, copied into the phone/ipad, and run, make it look at the either of the two posters. It will display some points, boxes, and a few strings including the title of the movie.
+
+Comments & questions: yndk@sogang.ac.kr
